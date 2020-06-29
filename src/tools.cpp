@@ -21,6 +21,10 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   // check the validity of the following inputs:
   //  * the estimation vector size should not be zero
   //  * the estimation vector size should equal ground truth vector size
+  if (estimations.size() != ground_truth.size()
+     || estimations.size() == 0) {
+    return rmse;
+  }
 
   // TODO: accumulate squared residuals
   for (size_t i=0; i < estimations.size(); ++i) {
