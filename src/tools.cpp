@@ -22,12 +22,14 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   //  * the estimation vector size should not be zero
   //  * the estimation vector size should equal ground truth vector size
   if (estimations.size() != ground_truth.size()
-     || estimations.size() == 0) {
+     || estimations.size() == 0) 
+  {
     return rmse;
   }
 
   // TODO: accumulate squared residuals
-  for (size_t i=0; i < estimations.size(); ++i) {
+  for (size_t i=0; i < estimations.size(); ++i) 
+  {
     // ... your code here
     VectorXd diff = estimations[i] - ground_truth[i];
     VectorXd diff2 = diff.array() * diff.array();
@@ -47,7 +49,13 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
    * TODO:
    * Calculate a Jacobian here.
    */
-  MatrixXd Hj = MatrixXd::Zero(3,4);
+  MatrixXd Hj(3,4);
+
+  if(x_state.size() != 4)
+  {
+    return Hj;
+  }
+
   // recover state parameters
   float px = x_state(0);
   float py = x_state(1);
@@ -59,25 +67,18 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
   // check division by zero
   
   // compute the Jacobian matrix
-  float px2 = px * px;
-  float py2 = py * py;
-  float px2py2sum = px2 + py2;
+  float c1 = px * px + py * py;
+  float c2 = sqrt(c1);
+  float c3 = c1 * c2;
 
-  if(fabs(px2py2sum) < 1e-4)
+  if(fabs(c1) < 1e-4)
   {
-    px += 1e-4;
-    py += 1e-4;
-    px2py2sum = px * px + py * py;
+    return Hj;
   }
 
-  Hj(0, 0) = px / sqrt(px2py2sum);
-  Hj(0, 1) = py / sqrt(px2py2sum);
-  Hj(1, 0) = - py / px2py2sum;
-  Hj(1, 1) = px / px2py2sum;
-  Hj(2, 0) = py * (vx * py - vy * px) / pow(px2py2sum, 1.5);
-  Hj(2, 1) = px * (vy * px - vx * py) / pow(px2py2sum, 1.5);
-  Hj(2, 2) = Hj(0, 0);
-  Hj(2, 3) = Hj(0, 1);
+  Hj << px / c2, py / c2, 0, 0,
+        -py / c1, px / c1, 0, 0,
+        py * (vx * py - vy * px) / c3, px * (px * vy - py * vx) / c3, px / c2, py / c2;
 
   return Hj;
 }

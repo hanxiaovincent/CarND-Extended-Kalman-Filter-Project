@@ -36,20 +36,14 @@ FusionEKF::FusionEKF() {
    * TODO: Finish initializing the FusionEKF.
    * TODO: Set the process and measurement noises
    */
-  VectorXd x_ = VectorXd::Zero(4);
-  MatrixXd P_(4, 4);
-  P_ << 1, 0, 0, 0,
+  ekf_.P_ = MatrixXd(4, 4);
+  ekf_.P_ << 1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1000, 0,
         0, 0, 0, 1000;
 
-  MatrixXd F_ = MatrixXd::Zero(4, 4);
-  MatrixXd Q_ = MatrixXd::Zero(4, 4);
-
   H_laser_ << 1, 0, 0, 0,
               0, 1, 0, 0;
-
-  ekf_.Init(x_, P_, F_, H_laser_, R_laser_, Q_);
 }
 
 /**
@@ -80,7 +74,9 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       double bearing = measurement_pack.raw_measurements_(1);
       double rate = measurement_pack.raw_measurements_(2);
       ekf_.x_(0) = range * cos(bearing);
+      if(ekf_.x_(0) < 1e-4) ekf_.x_(0) = 1e-4;
       ekf_.x_(1) = range * sin(bearing);
+      if(ekf_.x_(1) < 1e-4) ekf_.x_(1) = 1e-4;
       ekf_.x_(2) = rate * cos(bearing);
       ekf_.x_(3) = rate * sin(bearing);
     }
@@ -88,13 +84,14 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       // TODO: Initialize state.
       ekf_.x_(0) = measurement_pack.raw_measurements_(0);
       ekf_.x_(1) = measurement_pack.raw_measurements_(1);
-      ekf_.x_(2) = 0;
-      ekf_.x_(3) = 0;
+      ekf_.x_(2) = 0.0;
+      ekf_.x_(3) = 0.0;
     }
 
+    previous_timestamp_ = measurement_pack.timestamp_;
     // done initializing, no need to predict or update
     is_initialized_ = true;
-    previous_timestamp_ = measurement_pack.timestamp_;
+    
     return;
   }
 
@@ -111,6 +108,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   double dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
   previous_timestamp_ = measurement_pack.timestamp_;
 
+  ekf_.F_ = MatrixXd(4, 4);
   ekf_.F_ << 1, 0, dt, 0,
              0, 1, 0, dt,
              0, 0, 1, 0,
@@ -119,8 +117,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
   double dt2 = dt * dt;
   double dt3 = dt2 * dt;
   double dt4 = dt3 * dt;
-  double noise_ax = 9;
-  double noise_ay = 9;
+  double noise_ax = 9.0;
+  double noise_ay = 9.0;
   ekf_.Q_ = MatrixXd(4,4);
   ekf_.Q_ << dt4 / 4 * noise_ax, 0, dt3 / 2 * noise_ax, 0,
              0, dt4 / 4 * noise_ay, 0, dt3 / 2 * noise_ay,
